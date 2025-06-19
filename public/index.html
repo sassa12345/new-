@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ファイルアップロード・ダウンロード</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .file-list { margin-top: 20px; border: 1px solid #ccc; padding: 10px; }
+        .file-list ul { list-style: none; padding: 0; }
+        .file-list li { margin-bottom: 5px; }
+        .file-list li a { text-decoration: none; color: blue; }
+    </style>
+</head>
+<body>
+    <h1>ファイルアップロード</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="myFile" id="myFile">
+        <button type="submit">アップロード</button>
+    </form>
+    <p id="message"></p>
+
+    <h1>ダウンロード可能なファイル</h1>
+    <div class="file-list" id="fileList">
+        <p>ファイルを読み込み中...</p>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const messageElem = document.getElementById('message');
+        const fileListElem = document.getElementById('fileList');
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(uploadForm);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const text = await response.text();
+                messageElem.textContent = text;
+                if (response.ok) {
+                    fetchFiles(); // アップロード成功後、ファイルリストを更新
+                }
+            } catch (error) {
+                console.error('アップロードエラー:', error);
+                messageElem.textContent = 'ファイルのアップロードに失敗しました。';
+            }
+        });
+
+        async function fetchFiles() {
+            try {
+                const response = await fetch('/files');
+                const files = await response.json();
+                fileListElem.innerHTML = ''; // 既存のリストをクリア
+                if (files.length === 0) {
+                    fileListElem.innerHTML = '<p>ファイルはまだありません。</p>';
+                } else {
+                    const ul = document.createElement('ul');
+                    files.forEach(file => {
+                        const li = document.createElement('li');
+                        const a = document.createElement('a');
+                        a.href = `/download/${file}`;
+                        a.textContent = file;
+                        li.appendChild(a);
+                        ul.appendChild(li);
+                    });
+                    fileListElem.appendChild(ul);
+                }
+            } catch (error) {
+                console.error('ファイルリストの取得エラー:', error);
+                fileListElem.innerHTML = '<p>ファイルリストの取得に失敗しました。</p>';
+            }
+        }
+
+        // ページロード時にファイルリストを読み込む
+        fetchFiles();
+    </script>
+</body>
+</html>
